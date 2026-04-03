@@ -23,6 +23,7 @@ body{
 canvas{
   background:#9bbc0f;
   border:10px solid #0f380f;
+  display:block;
 }
 </style>
 </head>
@@ -40,7 +41,7 @@ const size = 15;
 const tiles = 20;
 
 let snake, dx, dy, food, score;
-let gameOver = false;
+let state = "start"; // start, playing, gameover
 let speed = 120;
 let loop;
 
@@ -50,16 +51,15 @@ function init(){
   dx = 1;
   dy = 0;
   score = 0;
-  gameOver = false;
   speed = 120;
-
   food = spawnFood();
+  state = "playing";
 
   clearInterval(loop);
   loop = setInterval(gameLoop, speed);
 }
 
-// ===== FOOD (never on snake) =====
+// ===== FOOD =====
 function spawnFood(){
   let newFood;
   while(true){
@@ -67,7 +67,6 @@ function spawnFood(){
       x: Math.floor(Math.random()*tiles),
       y: Math.floor(Math.random()*tiles)
     };
-
     let onSnake = snake.some(s => s.x===newFood.x && s.y===newFood.y);
     if(!onSnake) return newFood;
   }
@@ -75,21 +74,18 @@ function spawnFood(){
 
 // ===== UPDATE =====
 function update(){
-  let head = {
-    x: snake[0].x + dx,
-    y: snake[0].y + dy
-  };
+  let head = { x: snake[0].x + dx, y: snake[0].y + dy };
 
-  // wrap-around
+  // wrap-around edges
   if(head.x < 0) head.x = tiles - 1;
   if(head.x >= tiles) head.x = 0;
   if(head.y < 0) head.y = tiles - 1;
   if(head.y >= tiles) head.y = 0;
 
-  // self collision
+  // self collision → game over
   for(let s of snake){
     if(s.x === head.x && s.y === head.y){
-      gameOver = true;
+      state = "gameover";
       clearInterval(loop);
       return;
     }
@@ -101,13 +97,12 @@ function update(){
     score++;
     food = spawnFood();
 
-    // slight speed increase (realistic)
+    // speed ramp
     if(speed > 70){
       speed -= 3;
       clearInterval(loop);
       loop = setInterval(gameLoop, speed);
     }
-
   } else {
     snake.pop();
   }
@@ -115,9 +110,18 @@ function update(){
 
 // ===== DRAW =====
 function draw(){
-  // screen
+  // background
   ctx.fillStyle="#9bbc0f";
   ctx.fillRect(0,0,300,300);
+
+  if(state === "start"){
+    ctx.fillStyle="#0f380f";
+    ctx.font="16px monospace";
+    ctx.fillText("NOKIA SNAKE", 75, 120);
+    ctx.font="12px monospace";
+    ctx.fillText("Press any key to start", 65, 150);
+    return;
+  }
 
   // snake
   ctx.fillStyle="#0f380f";
@@ -134,8 +138,8 @@ function draw(){
   ctx.font="14px monospace";
   ctx.fillText("Score: "+score, 5, 15);
 
-  // GAME OVER SCREEN
-  if(gameOver){
+  // game over
+  if(state === "gameover"){
     ctx.fillStyle="rgba(155,188,15,0.9)";
     ctx.fillRect(0,100,300,100);
 
@@ -151,14 +155,14 @@ function draw(){
 
 // ===== LOOP =====
 function gameLoop(){
-  update();
+  if(state === "playing") update();
   draw();
 }
 
 // ===== CONTROLS =====
 document.addEventListener("keydown", e=>{
-  if(gameOver){
-    init(); // restart on any key
+  if(state === "start" || state === "gameover"){
+    init();
     return;
   }
 
@@ -168,8 +172,8 @@ document.addEventListener("keydown", e=>{
   if(e.key==="ArrowRight" && dx===0){ dx=1; dy=0; }
 });
 
-// ===== START =====
-init();
+// ===== START SCREEN =====
+draw();
 </script>
 
 </body>
